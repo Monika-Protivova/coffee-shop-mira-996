@@ -20,5 +20,63 @@ fun Route.orderRoutes(
     route("$basePath/orders") {
 
         // implement the routes for orders
+        get {
+            val orders = orderService.getAllOrders()
+            call.respond(orders)
+        }
+
+        get("/{id}") {
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null) {
+                call.respond(HttpStatusCode.BadRequest, INVALID_ID)
+                return@get
+            }
+
+            val order = orderService.getOrderById(id)
+            if (order == null) {
+                call.respond(HttpStatusCode.NotFound, ORDER_NOT_FOUND)
+            } else {
+                call.respond(order)
+            }
+        }
+
+        post {
+            val userId = call.getUserIdentity()
+            val orderRequest = call.receive<Order>()
+            val newOrder = orderRequest.copy(userId = userId)
+            val created = orderService.createOrder(newOrder)
+            call.respond(HttpStatusCode.Created, created)
+        }
+
+        put("/{id}") {
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null) {
+                call.respond(HttpStatusCode.BadRequest, INVALID_ID)
+                return@put
+            }
+
+            val updatedOrder = call.receive<Order>()
+            val success = orderService.updateOrder(id, updatedOrder)
+            if (success) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respond(HttpStatusCode.NotFound, ORDER_NOT_FOUND)
+            }
+        }
+
+        delete("/{id}") {
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null) {
+                call.respond(HttpStatusCode.BadRequest, INVALID_ID)
+                return@delete
+            }
+
+            val success = orderService.deleteOrder(id)
+            if (success) {
+                call.respond(HttpStatusCode.NoContent)
+            } else {
+                call.respond(HttpStatusCode.NotFound, ORDER_NOT_FOUND)
+            }
+        }
     }
 }
